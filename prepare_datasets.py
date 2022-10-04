@@ -44,8 +44,8 @@ class GetCIFAR():
                 download=False,
                 transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
   
-            train_set = ReturnIndexDataset(train_dataset, transform=torchvision.transforms.Compose([self.transforms_aug, self.normalize]))
-            valid_set = ReturnIndexDataset(val_dataset, transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
+            train_set = ReturnIndexDataset(train_dataset, transform=torchvision.transforms.Compose([self.transforms_aug]))
+            valid_set = ReturnIndexDataset(val_dataset, transform=torchvision.transforms.Compose([self.transforms_plain]))
 
             if utils.is_main_process():
                 print(f"There are {len(train_set)} samples in train split, on each rank. ")
