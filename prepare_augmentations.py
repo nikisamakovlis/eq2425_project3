@@ -16,7 +16,8 @@ class PublicDataAugmentation(object):
         self.transforms_plain = transforms.Compose([
             transforms.Resize(full_size),
             transforms.CenterCrop(global_size),  # Center cropping
-            transforms.ToTensor()])
+            transforms.ToTensor(),
+            transforms.Compose([transforms.Normalize(normalize_mean, normalize_std),])])
 
         self.transforms_aug = self.transforms_plain
 

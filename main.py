@@ -55,7 +55,6 @@ def get_data(rank):
     augmentations = prepare_augmentations.PublicDataAugmentation(dataset_params)
     transforms_plain = augmentations.transforms_plain
     transforms_aug = augmentations.transforms_aug
-    normalize = augmentations.normalize
 
     # Get dataset class
     # CnnModel = prepare_models.CNN()

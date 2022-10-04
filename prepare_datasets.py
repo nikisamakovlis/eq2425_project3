@@ -22,11 +22,10 @@ class ReturnIndexDataset(Dataset):
         return len(self.subset)
 
 class GetCIFAR():
-    def __init__(self, dataset_params, transforms_aug, transforms_plain, normalize):
+    def __init__(self, dataset_params, transforms_aug, transforms_plain):
         self.dataset_params = dataset_params
         self.transforms_aug = transforms_aug
         self.transforms_plain = transforms_plain
-        self.normalize = normalize
 
     def get_datasets(self, official_split):
         # Train: 50,000 images
@@ -57,6 +56,6 @@ class GetCIFAR():
                 root=self.dataset_params['data_folder'],
                 train=False,
                 download=False,
-                transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
+                transform=torchvision.transforms.Compose([self.transforms_plain]))
             dataset = ReturnIndexDataset(dataset, transform=None)
             return dataset
