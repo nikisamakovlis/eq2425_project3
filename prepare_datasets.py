@@ -42,7 +42,7 @@ class GetCIFAR():
                 root=self.dataset_params['data_folder'],
                 train=False,
                 download=False,
-                transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
+                transform=None)
   
             train_set = ReturnIndexDataset(train_dataset, transform=torchvision.transforms.Compose([self.transforms_aug]))
             valid_set = ReturnIndexDataset(val_dataset, transform=torchvision.transforms.Compose([self.transforms_plain]))
