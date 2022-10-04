@@ -17,7 +17,7 @@ class PublicDataAugmentation(object):
             transforms.Resize(full_size),
             transforms.CenterCrop(global_size),  # Center cropping
             transforms.ToTensor(),
-            transforms.Compose([transforms.Normalize(normalize_mean, normalize_std),])])
+            self.normalize])
 
         self.transforms_aug = self.transforms_plain
 
