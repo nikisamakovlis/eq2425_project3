@@ -10,13 +10,11 @@ class PublicDataAugmentation(object):
         global_size = int(dataset_params['resolution'])
 
         # Define the normalization
-        normalize_mean = ast.literal_eval('(0.5071, 0.4867, 0.4408)')
-        normalize_std = ast.literal_eval('(0.2675, 0.2565, 0.2761)')
-        self.normalize = transforms.Compose([transforms.Normalize(normalize_mean, normalize_std),])
+        self.normalize = transforms.Compose([transforms.Normalize(0.5, 1),])
 
         # Define transforms for training (transforms_aug) and for validation (transforms_plain)
         self.transforms_plain = transforms.Compose([
-            transforms.Resize(full_size, interpolation=3),
+            transforms.Resize(full_size),
             transforms.CenterCrop(global_size),  # Center cropping
             transforms.ToTensor()])
 

@@ -33,20 +33,20 @@ class GetCIFAR():
         # Test: 10,000 images
         if official_split == 'train/' or official_split == 'val/':
             # Note that CIFAR dataset doesn't have its official validation set, so here we create our own
-            original_train_dataset = datasets.CIFAR10(
+            train_dataset = datasets.CIFAR10(
                 root=self.dataset_params['data_folder'],
                 train=True,
                 download=False,
                 transform=None)
 
-            num_train = len(original_train_dataset)
-            valid_size = 0.02
-            split = int(np.floor(valid_size * num_train))
-            train_set, valid_set = torch.utils.data.random_split(original_train_dataset, [num_train-split, split],
-                                                                 generator=torch.Generator().manual_seed(42))
-
-            train_set = ReturnIndexDataset(train_set, transform=torchvision.transforms.Compose([self.transforms_aug, self.normalize]))
-            valid_set = ReturnIndexDataset(valid_set, transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
+            val_dataset = datasets.CIFAR10(
+                root=self.dataset_params['data_folder'],
+                train=False,
+                download=False,
+                transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
+  
+            train_set = ReturnIndexDataset(train_dataset, transform=torchvision.transforms.Compose([self.transforms_aug, self.normalize]))
+            valid_set = ReturnIndexDataset(val_dataset, transform=torchvision.transforms.Compose([self.transforms_plain, self.normalize]))
 
             if utils.is_main_process():
                 print(f"There are {len(train_set)} samples in train split, on each rank. ")

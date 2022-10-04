@@ -1,33 +1,31 @@
 {
  "mode": "train",
- "dataset_params": { "data_folder": "data/",
+ "dataset_params": { "data_folder": "/storage/data/",
                      "dataset_name": "CIFAR10",
                      "resolution": 32, },
- "save_params": { "output_dir": "models/",
+ "save_params": { "output_dir": "/storage/cnn_models/",
                   "saveckp_freq": 1 },
- "dataloader_params": { "trainloader":{ "batch_size": 128,
+ "dataloader_params": { "trainloader":{ "batch_size": 64, # Based on the preferred configuration above, change the batch size from 64 to 256.
+                                                          # Report the recall. Also report the change of the training time.
                                         "accum_iter": 1,
                                         "num_workers": 10,
                                         "pin_memory": True,
-                                        "drop_last": True},
-                        "valloader": { "batch_size": 128,
+                                        "drop_last": True,
+                                        "shuffling": True}, # Shuffeling the data each epoch. Report the recall.
+                        "valloader": { "batch_size": 64,
                                        "accum_iter": 1,
                                        "num_workers": 10,
                                        "pin_memory": True,
-                                       "drop_last": False} },
+                                       "drop_last": False,
+                                       "shuffling": False}} },
  "model_params": { "backbone_option":  'CNN'},
  "system_params": { "num_gpus": 1,
                     "gpu_ids": "0",
                     "random_seed": 0,},
- "training_params": { "train": { "num_epochs": 400,
+ "training_params": { "train": { "num_epochs": 300,
                                  "val_freq": 1,
                                  "optimizer": { "name": 'sgd',
-                                                "adamw": { "lr": 0.00001, "momentum": [ 0.9, 0.999 ] , "warmup_epochs": 2, "step_epoch": 400 },
-                                                "sgd": { "lr": 0.0003, "momentum": 0.9 , "warmup_epochs": 2, "step_epoch": 400 } },
-                                 "wd": 0.0001,
-                                 "clip_grad": 1,
-                                 "label_smoothing": 0.1,}, }, #
-  # for swin models, keep_rate takes an integer representing the number of tokens left within a window, e.g., 1,2,...,6
-  # for deit models, keep_rate is a float number between [0,1]
+                                                "sgd": { "lr": 0.001 } },}, }, # Based on the preferred configuration above, change the learning rate to 0.1. Report the recall.
+
 
 }

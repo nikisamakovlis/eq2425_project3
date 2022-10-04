@@ -33,8 +33,16 @@ def set_globals(rank, args):
 
     # ============ Writing model_path in args ... ============
     # Write model_path in args
+    batch_size = trainloader_params['batch_size']
+    lr = training_params['train']['optimizer']['sgd']['lr']
+    shuffling = trainloader_params['shuffling']
+    if shuffling:
+        shuffling_label = 'shuffling'
+    else:
+        shuffling_label = 'notshuffling'
+
     output_dir = save_params["output_dir"]
-    model_path = os.path.join(output_dir, f"saved_model")
+    model_path = os.path.join(output_dir, f"saved_model_bs{batch_size}_lr{lr}_{shuffling_label}")
     if not os.path.exists(model_path):
         if rank == 0:
             os.makedirs(model_path)
@@ -50,18 +58,18 @@ def get_data(rank):
     normalize = augmentations.normalize
 
     # Get dataset class
-    CnnModel = prepare_models.CNN()
+    # CnnModel = prepare_models.CNN()
 
-    dataset_class = prepare_datasets.GetPublicDatasets(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain, normalize=normalize)
+    dataset_class = prepare_datasets.GetCIFAR(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain, normalize=normalize)
 
     if mode == 'train':
         train_dataset, val_dataset = dataset_class.get_datasets('train/')
-        train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=system_params['num_gpus'], rank=rank, shuffle=True)  # shuffle=True to reduce monitor bias
+        train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=system_params['num_gpus'], rank=rank, shuffle=trainloader_params['shuffling'])  # shuffle=True to reduce monitor bias
     else:
         val_dataset = dataset_class.get_datasets('test/')
 
     # Set the data sampler with DistributedSampler
-    val_sampler = torch.utils.data.DistributedSampler(val_dataset, num_replicas=system_params['num_gpus'], rank=rank, shuffle=True)  # shuffle=True to reduce monitor bias
+    val_sampler = torch.utils.data.DistributedSampler(val_dataset, num_replicas=system_params['num_gpus'], rank=rank, shuffle=valloader_params['shuffling'])  # shuffle=True to reduce monitor bias
 
     # Build train and val data loaders
     train_batch_size = int(trainloader_params['batch_size'] / (system_params['num_gpus']*trainloader_params['accum_iter']))
