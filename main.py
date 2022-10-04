@@ -59,7 +59,7 @@ def get_data(rank):
     # Get dataset class
     # CnnModel = prepare_models.CNN()
 
-    dataset_class = prepare_datasets.GetCIFAR(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain, normalize=normalize)
+    dataset_class = prepare_datasets.GetCIFAR(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain)
 
     if mode == 'train':
         train_dataset, val_dataset = dataset_class.get_datasets('train/')
