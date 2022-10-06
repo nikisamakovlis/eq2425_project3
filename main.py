@@ -9,6 +9,13 @@ import prepare_augmentations
 import prepare_models
 import prepare_datasets
 
+import warnings
+warnings.filterwarnings("ignore")
+
+import wandb
+from wandb import AlertLevel
+torch.autograd.set_detect_anomaly(True)
+
 def prepare_args(default_params_path=None):
     # Load default params
     with open(default_params_path) as f:
@@ -47,6 +54,14 @@ def set_globals(rank, args):
         if rank == 0:
             os.makedirs(model_path)
     args["save_params"]["model_path"] = model_path
+
+    if mode == 'train':
+        if args['resume_id'] is not None:
+            wandb.init(project="visual_search", entity="yueliukth", name=os.path.basename(args["save_params"]["model_path"]), config=args, resume="must", id=args['resume_id'],
+                       settings=wandb.Settings(start_method="fork"))
+        else:
+            wandb.init(project="visual_search", entity="yueliukth", name=os.path.basename(args["save_params"]["model_path"]), config=args)
+
     return args
 
 def get_data(rank):
@@ -57,7 +72,7 @@ def get_data(rank):
     transforms_aug = augmentations.transforms_aug
 
     # Get dataset class
-    # CnnModel = prepare_models.CNN()
+    CnnModel = prepare_models.CNN()
 
     dataset_class = prepare_datasets.GetCIFAR(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain)
 
@@ -93,6 +108,26 @@ def get_data(rank):
 
     return rank, train_dataloader, val_dataloader
 
+def get_model_loss(rank):
+    # ============ Preparing model ... ============
+
+    # model = CnnModel.
+
+    # Move the model to gpu. This step is necessary for DDP later
+    device = torch.device("cuda:{}".format(rank))
+    model = model.to(device)
+    model = nn.parallel.DistributedDataParallel(model, device_ids=[rank], find_unused_parameters=False)
+
+    # Log the number of trainable parameters in Tensorboard
+    if rank == 0:
+        n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print('Number of trainable params in the model:', n_parameters, end='\n\n')
+        writer.add_text("Number of trainable params in the model", str(n_parameters))
+
+    # ============ Preparing loss and move it to gpu ... ============
+    loss = torch.nn.CrossEntropyLoss(label_smoothing=training_params[mode]['label_smoothing'])
+    return rank, {'model': model}, {'classification_loss': loss}
+
 
 def main(rank, args):
     # ============ Define some parameters for easy access... ============
@@ -105,8 +140,8 @@ def main(rank, args):
     # ============ Getting data ready ... ============
     rank, train_dataloader, val_dataloader = get_data(rank)
 
-    # # ============ Getting model and loss ready ... ============
-    # rank, model, loss = get_model_loss(rank)
+    # ============ Getting model and loss ready ... ============
+    rank, model, loss = get_model_loss(rank)
     #
     # if mode == 'train':
     #     # ============ Getting optimizer ready ... ============

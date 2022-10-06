@@ -36,6 +36,7 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size=(2, 2), stride=2),
 
             nn.Linear(in_features=filter3, out_features=512),
+            nn.ReLU(),
             nn.Linear(in_features=512, out_features=128),
             nn.ReLU(),
             nn.Linear(in_features=128, out_features=10),
@@ -106,4 +107,5 @@ class CNN(nn.Module):
             nn.LogSoftmax()
 
         )
+
 
