@@ -12,7 +12,7 @@ import prepare_augmentations
 import prepare_models
 import prepare_datasets
 import prepare_trainers
-import evaluation
+from yaml import evaluation
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -26,6 +26,7 @@ def prepare_args(default_params_path=None):
     with open(default_params_path) as f:
         args = yaml.safe_load(f)
     return args
+
 
 def set_globals(rank, args):
     global mode
@@ -68,6 +69,7 @@ def set_globals(rank, args):
             wandb.init(project="visual_search", entity="yueliukth", name=os.path.basename(args["save_params"]["model_path"]), config=args)
 
     return args
+
 
 def get_data(rank):
     global CnnModel
@@ -152,6 +154,7 @@ def get_optimizer(model):
     lr = training_params[mode]['optimizer'][optimizer_choice]['lr']
     optimizer = torch.optim.SGD(params_dict, lr=lr)
     return optimizer
+
 
 def get_schedulers(train_dataloader):
     # ============ Initialize schedulers ... ============
@@ -275,5 +278,5 @@ def main(rank, args):
 
 
 if __name__ == '__main__':
-    args = prepare_args(default_params_path='train_params.yaml')
+    args = prepare_args(default_params_path='yaml/train_params.yaml')
     utils.launch(main, args)
