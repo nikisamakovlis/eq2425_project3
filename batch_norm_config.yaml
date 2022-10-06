@@ -6,13 +6,13 @@
                      "resolution": 32, },
  "save_params": { "output_dir": "/storage/cnn_models/",
                   "saveckp_freq": 1 },
- "dataloader_params": { "trainloader":{ "batch_size": 64, # Based on the preferred configuration above, change the batch size from 64 to 256.
+ "dataloader_params": { "trainloader":{ "batch_size": 64, # 5.1 Based on the preferred configuration above, change the batch size from 64 to 256.
                                                           # Report the recall. Also report the change of the training time.
                                         "accum_iter": 1,
                                         "num_workers": 10,
                                         "pin_memory": True,
                                         "drop_last": True,
-                                        "shuffling": True}, # Shuffeling the data each epoch. Report the recall.
+                                        "shuffling": False}, # 5.2 Shuffeling the data each epoch. Report the recall.
                         "valloader": { "batch_size": 64,
                                        "accum_iter": 1,
                                        "num_workers": 10,
@@ -20,17 +20,13 @@
                                        "drop_last": False,
                                        "shuffling": False}} },
  "model_params": {  "backbone_option":  'CNN',
-                    "variant": 'DefaultModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'batchNormModel'
-                    "filter_num": '(24,48,96)'),  # '(24,48,96)', '(64,128,256)'
-                    "filter_size12": '(5,3)'} # '(5,3)', '(7,5)'
+                    "variant": 'batchNormModel',  # With/without DropOut, Leaky ReLU and connected layer?
+                    "filter_num": '(24,48,96)'),  # '(24,48,96)', '(64,128,256)' Which filternum from 4.1?
+                    "filter_size12": '(5,3)'} # '(5,3)', '(7,5)'                 Which filtersize from 4.2?
  "system_params": { "num_gpus": 1,
                     "gpu_ids": "0",
                     "random_seed": 0,},
  "training_params": { "train": { "num_epochs": 300,
                                  "val_freq": 1,
                                  "optimizer": { "name": 'sgd',
-                                                "sgd": { "lr": 0.001 } },}, }, # Based on the preferred configuration above, change the learning rate to 0.1. Report the recall.
-
-
-}
-
+                                                "sgd": { "lr": 0.001 } },}, }, # 5.3 Based on the preferred configuration above, change the learning rate to 0.1. Report the recall.

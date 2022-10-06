@@ -10,7 +10,7 @@ class PublicDataAugmentation(object):
         global_size = int(dataset_params['resolution'])
 
         # Define the normalization
-        self.normalize = transforms.Compose([transforms.Normalize(0.5, 1),])
+        self.normalize = transforms.Compose([transforms.Normalize((0.5, 0.5, 0.5), (1, 1, 1)),])
 
         # Define transforms for training (transforms_aug) and for validation (transforms_plain)
         self.transforms_plain = transforms.Compose([

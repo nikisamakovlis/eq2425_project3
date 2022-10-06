@@ -1,13 +1,18 @@
 import os
+import ast
 import yaml
+from datetime import timedelta
 
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
 import utils
 import prepare_augmentations
 import prepare_models
 import prepare_datasets
+import prepare_trainers
+import evaluation
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -108,10 +113,18 @@ def get_data(rank):
 
     return rank, train_dataloader, val_dataloader
 
+
 def get_model_loss(rank):
     # ============ Preparing model ... ============
+    # 'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'batchNormModel'
+    filter1, filter2, filter3 = ast.literal_eval(str(model_params['filter_num']))
+    kernel1, kernel2 = ast.literal_eval(str(model_params['filter_size12']))
 
-    # model = CnnModel.
+    model = CnnModel(model_params)
+    print(model)
+    print(f'filter num: {filter1}, {filter3}')
+    print(f'filter size: {kernel1}, {kernel2}')
+    print(f"model variant: {model_params['variant']}")
 
     # Move the model to gpu. This step is necessary for DDP later
     device = torch.device("cuda:{}".format(rank))
@@ -122,11 +135,115 @@ def get_model_loss(rank):
     if rank == 0:
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print('Number of trainable params in the model:', n_parameters, end='\n\n')
-        writer.add_text("Number of trainable params in the model", str(n_parameters))
 
     # ============ Preparing loss and move it to gpu ... ============
-    loss = torch.nn.CrossEntropyLoss(label_smoothing=training_params[mode]['label_smoothing'])
+    loss = nn.NLLLoss()
+
     return rank, {'model': model}, {'classification_loss': loss}
+
+
+def get_optimizer(model):
+    # ============ Preparing optimizer ... ============
+    params_dict = utils.layer_decay_get_params_groups(model, weight_decay=0,
+                                                      skip_list=(),
+                                                      get_num_layer=None,
+                                                      get_layer_scale=None)
+    optimizer_choice = training_params[mode]['optimizer']['name']
+    lr = training_params[mode]['optimizer'][optimizer_choice]['lr']
+    optimizer = torch.optim.SGD(params_dict, lr=lr)
+    return optimizer
+
+def get_schedulers(train_dataloader):
+    # ============ Initialize schedulers ... ============
+    optimizer_choice = training_params[mode]['optimizer']['name']
+    base_lr = training_params[mode]['optimizer'][optimizer_choice]['lr']
+
+    lr_schedule = utils.constant_scheduler(base_value=base_lr, epochs=training_params[mode]['num_epochs'],
+                                           niter_per_ep=len(train_dataloader), warmup_epochs=0,
+                                           start_warmup_value=0, step_epoch=1000)
+    return lr_schedule
+
+
+def train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer, lr_schedule):
+    model = model['model']
+
+    # # ============ Optionally resume training ... ==========
+    to_restore = {'epoch': 0}
+    utils.restart_from_checkpoint(
+        os.path.join(save_params['model_path'], f'checkpoint.pth'),
+        run_variables=to_restore, model=model, optimizer=optimizer)
+
+    # # ============ Start training ... ============
+    if rank == 0:
+        print("Starting training !")
+
+    best_avg_auc = 0.
+    for epoch in range(to_restore['epoch'], training_params[mode]['num_epochs']):
+        # In distributed mode, calling the :meth:`set_epoch` method at
+        # the beginning of each epoch **before** creating the :class:`DataLoader` iterator
+        # is necessary to make shuffling work properly across multiple epochs. Otherwise,
+        # the same ordering will be always used.
+        train_dataloader.sampler.set_epoch(epoch)
+        val_dataloader.sampler.set_epoch(epoch)
+
+        # ============ Evaluating the classification performance before training starts ... ============
+        best_top1_recall = 0
+        if epoch == to_restore['epoch']:
+            val_loss, top1_recall = evaluation.cifar_validate_network(rank, val_dataloader, model, wandb, dataset_params, log_img=True)
+            best_top1_recall = max(best_top1_recall, top1_recall)
+            if rank == 0:
+                print(f"Best best_top1_recall at epoch {epoch} of the network on the validation set: {best_top1_recall}")
+                print(f"Val Loss at epoch {epoch} of the network on the validation set: {val_loss}")
+                wandb.log({f"VAL-LOSS": val_loss,
+                           f"Top1-Recall": top1_recall,
+                           f"BEST-Top1-Recall": best_top1_recall},
+                           step=epoch)
+
+        # ============ Training one epoch of finetuning ... ============
+        train_global_avg_stats = prepare_trainers.train_for_image_one_epoch(rank, epoch, training_params[mode]['num_epochs'],
+                                                                            model, loss, train_dataloader, optimizer, lr_schedule)
+
+
+    # Log the number of training loss in Tensorboard, at every epoch
+        if rank == 0:
+            print('Training one epoch is done, start writing loss and learning rate in wandb...')
+            wandb.log({f"LOSS": train_global_avg_stats['loss'],
+                       f"LEARNING RATE": train_global_avg_stats['lr'],
+                       f"WEIGHT DECAY": train_global_avg_stats['wd']},
+                      step=epoch+1)
+
+            if train_global_avg_stats['loss'] > 10:
+                wandb.alert(
+                    title='High loss',
+                    text=f"Loss {train_global_avg_stats['loss']} is above the acceptable threshold {10}",
+                    level=AlertLevel.WARN,
+                    wait_duration=timedelta(minutes=5)
+                )
+
+        # ============ Evaluating the classification performance ... ============
+        if (epoch + 1) % training_params[mode]['val_freq'] == 0 or (epoch + 1) == training_params[mode]['num_epochs']:
+            val_loss, top1_recall = evaluation.cifar_validate_network(rank, val_dataloader, model, wandb,
+                                                                      dataset_params, log_img=False)
+            best_top1_recall = max(best_top1_recall, top1_recall)
+            if rank == 0:
+                print(
+                    f"Best best_top1_recall at epoch {epoch+1} of the network on the validation set: {best_top1_recall}")
+                print(f"Val Loss at epoch {epoch+1} of the network on the validation set: {val_loss}")
+                wandb.log({f"VAL-LOSS": val_loss,
+                           f"Top1-Recall": top1_recall,
+                           f"BEST-Top1-Recall": best_top1_recall},
+                            step=epoch+1)
+
+        # ============ Saving the model ... ============
+        save_dict = {'model': model.state_dict(),
+                     'optimizer': optimizer.state_dict(), 'epoch': epoch + 1}
+
+        if rank == 0:
+            torch.save(save_dict,
+                       os.path.join(save_params['model_path'], f'checkpoint.pth'))
+            if save_params['saveckp_freq'] and (epoch + 1) % save_params['saveckp_freq'] == 0:
+                torch.save(save_dict, os.path.join(save_params['model_path'],
+                                                   f'checkpoint{epoch + 1:04}.pth'))
 
 
 def main(rank, args):
@@ -142,19 +259,19 @@ def main(rank, args):
 
     # ============ Getting model and loss ready ... ============
     rank, model, loss = get_model_loss(rank)
-    #
-    # if mode == 'train':
-    #     # ============ Getting optimizer ready ... ============
-    #     optimizer = get_optimizer(model)
-    #
-    #     # ============ Getting schedulers ready ... ============
-    #     lr_schedule = get_schedulers(train_dataloader)
-    #
-    #     if rank == 0:
-    #         print(f"Loss, optimizer and schedulers ready.", end="\n\n")
-    #
-    #     # ============ Start training process ... ============
-    #     train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer, lr_schedule)
+
+    if mode == 'train':
+        # ============ Getting optimizer ready ... ============
+        optimizer = get_optimizer(model)
+
+        # ============ Getting schedulers ready ... ============
+        lr_schedule = get_schedulers(train_dataloader)
+
+        if rank == 0:
+            print(f"Loss, optimizer and schedulers ready.", end="\n\n")
+
+        # ============ Start training process ... ============
+        train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer, lr_schedule)
 
 
 if __name__ == '__main__':
