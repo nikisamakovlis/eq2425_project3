@@ -104,9 +104,9 @@ def launch(main_func, args=()):
     world_size = args['system_params']['num_gpus']
     port = get_open_port()
     dist_url = f"tcp://127.0.0.1:{port}"
-    # os.environ[
-    #     "TORCH_DISTRIBUTED_DEBUG"
-    # ] = "INFO"
+    os.environ[
+        "TORCH_DISTRIBUTED_DEBUG"
+    ] = "INFO"
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
     mp.spawn(
@@ -354,3 +354,48 @@ def layer_decay_get_params_groups(model, weight_decay, skip_list=(), get_num_lay
         with open(output_path, 'w') as outfile:
             yaml.dump({**encoder_names,}, outfile, sort_keys=False, default_flow_style=False)
     return list({**encoder_params, }.values())
+
+def get_params_per_model(model, weight_decay, skip_list, get_num_layer, get_layer_scale, if_encoder=True):
+    parameter_group_names = {}
+    parameter_group_vars = {}
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        if len(param.shape) == 1 or name.endswith(".bias") or name in skip_list:
+            group_name = "no_decay"
+            this_weight_decay = 0.
+        else:
+            group_name = "decay"
+            this_weight_decay = weight_decay
+        if if_encoder:
+            if get_num_layer is not None:
+                layer_id = get_num_layer(name)
+                group_name = "layer_%d_%s" % (layer_id, group_name)
+            else:
+                layer_id = None
+        else:
+            group_name = 'classifier_'+group_name
+
+        if group_name not in parameter_group_names:
+            if if_encoder:
+                if get_layer_scale is not None:
+                    scale = get_layer_scale(layer_id)
+                else:
+                    scale = 1.
+            else:
+                scale = 1.
+
+            parameter_group_names[group_name] = {
+                "weight_decay": this_weight_decay,
+                "params": [],
+                "lr_scale": scale
+            }
+            parameter_group_vars[group_name] = {
+                "weight_decay": this_weight_decay,
+                "params": [],
+                "lr_scale": scale
+            }
+
+        parameter_group_vars[group_name]["params"].append(param)
+        parameter_group_names[group_name]["params"].append(name)
+    return parameter_group_vars, parameter_group_names

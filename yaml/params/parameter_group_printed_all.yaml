@@ -1,0 +1,20 @@
+decay:
+  weight_decay: 0
+  params:
+  - module.conv1.weight
+  - module.conv2.weight
+  - module.conv3.weight
+  - module.fc1.weight
+  - module.fc_optional.weight
+  - module.fc2.weight
+  lr_scale: 1.0
+no_decay:
+  weight_decay: 0.0
+  params:
+  - module.conv1.bias
+  - module.conv2.bias
+  - module.conv3.bias
+  - module.fc1.bias
+  - module.fc_optional.bias
+  - module.fc2.bias
+  lr_scale: 1.0

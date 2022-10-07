@@ -12,7 +12,7 @@ import prepare_augmentations
 import prepare_models
 import prepare_datasets
 import prepare_trainers
-from yaml import evaluation
+import evaluation
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -46,23 +46,25 @@ def set_globals(rank, args):
 
     # ============ Writing model_path in args ... ============
     # Write model_path in args
+    # TODO: to change for Network Structure
     batch_size = trainloader_params['batch_size']
     lr = training_params['train']['optimizer']['sgd']['lr']
     shuffling = trainloader_params['shuffling']
+
     if shuffling:
         shuffling_label = 'shuffling'
     else:
         shuffling_label = 'notshuffling'
 
     output_dir = save_params["output_dir"]
-    model_path = os.path.join(output_dir, f"saved_model_bs{batch_size}_lr{lr}_{shuffling_label}")
+    model_path = os.path.join(output_dir, f"saved_model_bs{batch_size}_lr{lr}_{shuffling_label}_{model_params['variant']}_{model_params['filter_num']}_{model_params['filter_size12']}")
     if not os.path.exists(model_path):
         if rank == 0:
             os.makedirs(model_path)
     args["save_params"]["model_path"] = model_path
 
     if mode == 'train':
-        if args['resume_id'] is not None:
+        if args['resume_id'] != "None":
             wandb.init(project="visual_search", entity="yueliukth", name=os.path.basename(args["save_params"]["model_path"]), config=args, resume="must", id=args['resume_id'],
                        settings=wandb.Settings(start_method="fork"))
         else:
@@ -72,14 +74,10 @@ def set_globals(rank, args):
 
 
 def get_data(rank):
-    global CnnModel
     # Get augmentations
     augmentations = prepare_augmentations.PublicDataAugmentation(dataset_params)
     transforms_plain = augmentations.transforms_plain
     transforms_aug = augmentations.transforms_aug
-
-    # Get dataset class
-    CnnModel = prepare_models.CNN()
 
     dataset_class = prepare_datasets.GetCIFAR(dataset_params, transforms_aug=transforms_aug, transforms_plain=transforms_plain)
 
@@ -117,14 +115,16 @@ def get_data(rank):
 
 
 def get_model_loss(rank):
+    # Get dataset class
+    model = prepare_models.CNN(model_params)
+
     # ============ Preparing model ... ============
-    # 'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'batchNormModel'
+    # 'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
     filter1, filter2, filter3 = ast.literal_eval(str(model_params['filter_num']))
     kernel1, kernel2 = ast.literal_eval(str(model_params['filter_size12']))
 
-    model = CnnModel(model_params)
     print(model)
-    print(f'filter num: {filter1}, {filter3}')
+    print(f'filter num: {filter1}, {filter2}, {filter3}')
     print(f'filter size: {kernel1}, {kernel2}')
     print(f"model variant: {model_params['variant']}")
 
@@ -196,6 +196,7 @@ def train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer
             best_top1_recall = max(best_top1_recall, top1_recall)
             if rank == 0:
                 print(f"Best best_top1_recall at epoch {epoch} of the network on the validation set: {best_top1_recall}")
+                print(f"Top1_recall at epoch {epoch} of the network on the validation set: {top1_recall}")
                 print(f"Val Loss at epoch {epoch} of the network on the validation set: {val_loss}")
                 wandb.log({f"VAL-LOSS": val_loss,
                            f"Top1-Recall": top1_recall,
@@ -207,7 +208,7 @@ def train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer
                                                                             model, loss, train_dataloader, optimizer, lr_schedule)
 
 
-    # Log the number of training loss in Tensorboard, at every epoch
+        # Log the number of training loss in Tensorboard, at every epoch
         if rank == 0:
             print('Training one epoch is done, start writing loss and learning rate in wandb...')
             wandb.log({f"LOSS": train_global_avg_stats['loss'],
@@ -231,6 +232,7 @@ def train_process(rank, train_dataloader, val_dataloader, model, loss, optimizer
             if rank == 0:
                 print(
                     f"Best best_top1_recall at epoch {epoch+1} of the network on the validation set: {best_top1_recall}")
+                print(f"Top1_recall at epoch {epoch+1} of the network on the validation set: {top1_recall}")
                 print(f"Val Loss at epoch {epoch+1} of the network on the validation set: {val_loss}")
                 wandb.log({f"VAL-LOSS": val_loss,
                            f"Top1-Recall": top1_recall,
@@ -278,5 +280,7 @@ def main(rank, args):
 
 
 if __name__ == '__main__':
-    args = prepare_args(default_params_path='yaml/train_params.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num.yaml')
+    args = prepare_args(default_params_path='yaml/connected_layer_config.yaml')
     utils.launch(main, args)

@@ -19,14 +19,6 @@ def cifar_validate_network(rank, val_dataloader, model, wandb, dataset_params, l
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Val:'
 
-    dataset_name = dataset_params['dataset_name']
-    normalize_mean = (0.5, 0.5, 0.5)
-    normalize_std = (1, 1, 1)
-    invTrans = transforms.Compose([ transforms.Normalize(mean=[ 0., 0., 0. ],
-                                                         std=[ 1/normalize_std[0], 1/normalize_std[1], 1/normalize_std[2] ]),
-                                    transforms.Normalize(mean=[ -normalize_mean[0], -normalize_mean[1], -normalize_mean[2] ],
-                                                         std=[ 1., 1., 1. ]),])
-
     all_pred_list = []
     all_true_list = []
     all_loss_list = []
@@ -38,12 +30,9 @@ def cifar_validate_network(rank, val_dataloader, model, wandb, dataset_params, l
         labels = labels.to(device, non_blocking=True).to(torch.int64)
         labels = torch.nn.functional.one_hot(labels, num_classes=10).float()
 
-        if log_img and wandb is not None and utils.is_main_process():
-            wandb.log({"val images": [wandb.Image(im) for im in invTrans(deepcopy(images))]}, step=0)
-
         # Forward
         with torch.no_grad():
-            output, _, _ = model(rank, images)
+            output = model(images)
             output = torch.exp(output)
             loss = -torch.mean(torch.sum(torch.log(output)*labels, dim=1))
             labels = torch.argmax(labels, dim=1)

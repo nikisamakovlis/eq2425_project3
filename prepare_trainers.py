@@ -33,7 +33,7 @@ def train_for_image_one_epoch(rank, epoch, num_epochs,
         # Model forward passes + compute the loss
         fp16_scaler = None
         with torch.cuda.amp.autocast(fp16_scaler is not None):
-            x = model(rank, images)
+            x = model(images)
 
             # first forward-backward pass
             loss = defined_loss['classification_loss'](x, labels)
