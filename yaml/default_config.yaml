@@ -1,6 +1,6 @@
 {
  "mode": "train",
- "resume_id": "None",
+ "resume_id": "11x1live",
  "dataset_params": { "data_folder": "/storage/data/",
                      "dataset_name": "CIFAR10",
                      "resolution": 32, },

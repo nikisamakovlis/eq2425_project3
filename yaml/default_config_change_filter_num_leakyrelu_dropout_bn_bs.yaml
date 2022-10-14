@@ -1,26 +1,26 @@
 {
  "mode": "train",
- "resume_id": "26g5etik",
+ "resume_id": "zdd144x0",
  "dataset_params": { "data_folder": "/storage/data/",
                      "dataset_name": "CIFAR10",
                      "resolution": 32, },
  "save_params": { "output_dir": "/storage/cnn_models/",
                   "saveckp_freq": 100 },
- "dataloader_params": { "trainloader":{ "batch_size": 64, # Based on the preferred configuration above, change the batch size from 64 to 256.
+ "dataloader_params": { "trainloader":{ "batch_size": 256, # Based on the preferred configuration above, change the batch size from 64 to 256.
                                                           # Report the recall. Also report the change of the training time.
                                         "accum_iter": 1,
                                         "num_workers": 10,
                                         "pin_memory": True,
                                         "drop_last": True,
                                         "shuffling": False}, # Shuffeling the data each epoch. Report the recall.
-                        "valloader": { "batch_size": 64,
+                        "valloader": { "batch_size": 256,
                                        "accum_iter": 1,
                                        "num_workers": 10,
                                        "pin_memory": True,
                                        "drop_last": False,
                                        "shuffling": False}},
  "model_params": {  "backbone_option": 'CNN',
-                    "variant": 'DefaultModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
+                    "variant": 'LeakyReLUModel_DropoutModel_BatchNormModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
                     "filter_num": '(64,128,256)',  # '(24,48,96)', '(64,128,256)' Should be changed in 4.1
                     "filter_size12": '(5,3)'}, # '(5,3)', '(7,5)'                 Should be changed in 4.2
  "system_params": { "num_gpus": 1,

@@ -1,6 +1,6 @@
 {
  "mode": "train",
- "resume_id": "None",
+ "resume_id": "3gt0709b",
  "dataset_params": { "data_folder": "/storage/data/",
                      "dataset_name": "CIFAR10",
                      "resolution": 32, },
@@ -20,9 +20,9 @@
                                        "drop_last": False,
                                        "shuffling": False}},
  "model_params": {  "backbone_option": 'CNN',
-                    "variant": 'ConnectedLayerModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
-                    "filter_num": '(24,48,96)',  # '(24,48,96)', '(64,128,256)' Should be changed in 4.1
-                    "filter_size12": '(5,3)'}, # '(5,3)', '(7,5)'                 Should be changed in 4.2
+                    "variant": 'DefaultModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
+                    "filter_num": '(64,128,256)',  # '(24,48,96)', '(64,128,256)' Should be changed in 4.1
+                    "filter_size12": '(7,5)'}, # '(5,3)', '(7,5)'                 Should be changed in 4.2
  "system_params": { "num_gpus": 1,
                     "gpu_ids": "0",
                     "random_seed": 0,},

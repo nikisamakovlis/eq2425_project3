@@ -1,6 +1,6 @@
 {
  "mode": "train",
- "resume_id": "26g5etik",
+ "resume_id": "351eo2lg",
  "dataset_params": { "data_folder": "/storage/data/",
                      "dataset_name": "CIFAR10",
                      "resolution": 32, },
@@ -20,7 +20,7 @@
                                        "drop_last": False,
                                        "shuffling": False}},
  "model_params": {  "backbone_option": 'CNN',
-                    "variant": 'DefaultModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
+                    "variant": 'LeakyReLUModel',  #'DefaultModel', 'ConnectedLayerModel', 'LeakyReLUModel', 'DropoutModel', 'BatchNormModel'
                     "filter_num": '(64,128,256)',  # '(24,48,96)', '(64,128,256)' Should be changed in 4.1
                     "filter_size12": '(5,3)'}, # '(5,3)', '(7,5)'                 Should be changed in 4.2
  "system_params": { "num_gpus": 1,

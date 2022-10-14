@@ -25,13 +25,17 @@ class CNN(nn.Module):
 
         self.conv3 = nn.Conv2d(in_channels=filter2, out_channels=filter3, kernel_size=(3,3), stride=1, padding='valid')
 
-        self.fc1 = nn.Linear(in_features=filter3*4, out_features=512)
+        if model_params['filter_size12'] == '(5,3)':
+            fc_in_features = filter3*2*2
+        elif model_params['filter_size12'] == '(7,5)':
+            fc_in_features = filter3*1*1
+        self.fc1 = nn.Linear(in_features=fc_in_features, out_features=512)
         self.dropout = nn.Dropout(p=0.3) if 'DropoutModel' in variant else nn.Identity()
-        self.bn = nn.BatchNorm2d(num_features=512) if 'BatchNormModel' in variant else nn.Identity()
+        # self.bn = nn.BatchNorm2d(num_features=512) if 'BatchNormModel' in variant else nn.Identity()
 
         self.fc_optional = nn.Linear(in_features=512, out_features=128) if 'ConnectedLayerModel' in variant else nn.Identity()
         self.relu_optional = nn.ReLU() if 'ConnectedLayerModel' in variant else nn.Identity()
-        self.bn_optional = nn.BatchNorm2d(num_features=128) if 'BatchNormModel' in variant else nn.Identity()
+        # self.bn_optional = nn.BatchNorm2d(num_features=128) if 'BatchNormModel' in variant else nn.Identity()
 
         if 'ConnectedLayerModel' in variant:
             self.fc2 = nn.Linear(in_features=128, out_features=10)
@@ -40,29 +44,37 @@ class CNN(nn.Module):
         self.logsoftmax = nn.LogSoftmax()
 
     def forward(self, x):
+        # x size torch.Size([64, 3, 32, 32])
         x = self.conv1(x)
         x = self.relu(x)
         x = self.bn1(x)
         x = self.maxpool(x)
+        # x size (32-5+1)/2 = 14 torch.Size([64, 24, 14, 14])
+        # x size (32-7+1)/2 = 13 torch.Size([64, 24, 13, 13])
 
         x = self.conv2(x)
         x = self.relu(x)
         x = self.bn2(x)
         x = self.maxpool(x)
+        # x size (14-3+1)/2 = 6 torch.Size([64, 48, 6, 6])
+        # x size (13-5+1)/2 = 4 torch.Size([64, 48, 4, 4])
 
         x = self.conv3(x)
         x = self.maxpool(x)
+        # x size = (6-3+1)/2 = 2 torch.Size([64, 96, 2, 2])
+        # x size = (4-3+1)/2 = 1 torch.Size([64, 96, 1, 1])
 
         # x = self.avgpool(x)
-        x = torch.flatten(x, 1)
+        x = torch.flatten(x, 1)  # torch.Size([64, 384])
+        
         x = self.fc1(x)
         x = self.relu(x)
-        x = self.bn(x)
+        # x = self.bn(x)
         x = self.dropout(x)
         if 'ConnectedLayerModel' in self.variant:
             x = self.fc_optional(x)
             x = self.relu_optional(x)
-            x = self.bn_optional(x)
+            # x = self.bn_optional(x)
 
         x = self.fc2(x)
         x = self.logsoftmax(x)

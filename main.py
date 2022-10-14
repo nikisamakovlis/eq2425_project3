@@ -58,6 +58,7 @@ def set_globals(rank, args):
 
     output_dir = save_params["output_dir"]
     model_path = os.path.join(output_dir, f"saved_model_bs{batch_size}_lr{lr}_{shuffling_label}_{model_params['variant']}_{model_params['filter_num']}_{model_params['filter_size12']}")
+
     if not os.path.exists(model_path):
         if rank == 0:
             os.makedirs(model_path)
@@ -282,5 +283,12 @@ def main(rank, args):
 if __name__ == '__main__':
     # args = prepare_args(default_params_path='yaml/default_config.yaml')
     # args = prepare_args(default_params_path='yaml/default_config_change_filter_num.yaml')
-    args = prepare_args(default_params_path='yaml/connected_layer_config.yaml')
+    # args = prepare_args(default_params_path='yaml/connected_layer_config.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_size.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu_dropout.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu_dropout_bn.yaml')
+    args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu_dropout_bn_bs.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu_dropout_bn_lr.yaml')
+    # args = prepare_args(default_params_path='yaml/default_config_change_filter_num_leakyrelu_dropout_bn_shuffling.yaml')
     utils.launch(main, args)
